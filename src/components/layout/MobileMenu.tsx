@@ -14,12 +14,12 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
       {/* Backdrop — tap-to-close */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-[99] bg-black/50 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-[99] bg-black/50 backdrop-blur-sm"
           onClick={onClose}
           aria-hidden="true"
         />
       )}
-      <aside className={`fixed inset-y-0 right-0 z-[100] w-full max-w-sm bg-surface-container-lowest shadow-2xl transition-transform duration-300 transform ${isOpen ? 'translate-x-0' : 'translate-x-full'} md:hidden`}>
+      <aside className={`fixed inset-y-0 right-0 z-[100] w-full max-w-sm bg-surface-container-lowest shadow-2xl transition-transform duration-300 transform ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
       <div className="flex flex-col h-screen p-10 justify-between">
         <div className="space-y-12">
           <div className="flex justify-between items-center mb-12">

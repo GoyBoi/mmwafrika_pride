@@ -33,7 +33,7 @@ export default function Navbar() {
               <div className="w-10 h-10 bg-accent flex items-center justify-center rounded-lg overflow-hidden">
                 <svg className="w-6 h-6 text-accent-fg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" /><path d="M8 12c0-2.21 1.79-4 4-4s4 1.79 4 4-1.79 4-4 4-4-1.79-4-4z" /><path d="M12 8V2" /><path d="M12 22v-6" /><path d="M8 12H2" /><path d="M22 12h-6" /></svg>
               </div>
-              <h1 className="font-vintage text-h2 italic text-primary tracking-tight transition-colors duration-300"><span className="font-sans font-semibold tracking-wide not-italic">MmwAfrika</span>{' '}Pride Couture</h1>
+              <h1 className="font-vintage text-body-sm md:text-h2 italic text-primary tracking-tight whitespace-nowrap transition-colors duration-300"><span className="font-sans font-semibold tracking-wide not-italic">MmwAfrika</span>{' '}Pride Couture</h1>
             </Link>
           </div>
           <div className="hidden md:flex items-center gap-10">
