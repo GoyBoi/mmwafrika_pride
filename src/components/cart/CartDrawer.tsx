@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { useCartStore } from '@/store/cartStore'
 import { useOverlayStore } from '@/store/overlayStore'
 import { SHIPPING_REGIONS, SHIPPING_COSTS } from '@/lib/constants'
-import { formatPrice, formatPriceUSD } from '@/lib/utils/formatPrice'
+import { formatPrice } from '@/lib/utils/formatPrice'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useOverlayBehavior } from '@/hooks/useOverlayBehavior'
@@ -26,7 +26,7 @@ export default function CartDrawer() {
 
   const isOpen = activeOverlay === 'cartDrawer'
 
-  const subtotal = items.reduce((sum, item) => sum + (currency === 'ZAR' ? item.priceZAR : item.priceUSD) * item.quantity, 0)
+  const subtotal = items.reduce((sum, item) => sum + (item.price?.[currency] ?? item.price.ZAR) * item.quantity, 0)
   const shipping = items.length > 0 ? SHIPPING_COSTS[shippingRegion as keyof typeof SHIPPING_COSTS] ?? 0 : 0
   const total = subtotal + shipping
 
@@ -91,7 +91,7 @@ export default function CartDrawer() {
                       <span className="text-sm font-semibold">{item.quantity}</span>
                       <button onClick={() => updateQuantity(item.productId, item.size, item.quantity + 1)} className="text-sm font-bold hover:text-secondary" aria-label="Increase quantity">+</button>
                     </div>
-                    <span className="text-price">{currency === 'ZAR' ? formatPrice(item.priceZAR) : formatPriceUSD(item.priceUSD)}</span>
+                    <span className="text-price">{formatPrice(item.price?.[currency] ?? item.price.ZAR, currency)}</span>
                   </div>
                 </div>
               </div>
@@ -99,9 +99,9 @@ export default function CartDrawer() {
             {items.length === 0 && (
               <div className="text-center py-20">
                 <svg className="w-16 h-16 mx-auto text-on-surface-variant/30 mb-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 01-8 0" /></svg>
-                <p className="text-h3 font-medium text-primary">Your bag is waiting</p>
-                <p className="text-body-md text-on-surface-variant mt-2">Discover pieces crafted with intention.</p>
-                <Link href="/collections" onClick={handleClose} className="inline-block mt-6 text-accent hover:text-primary transition-colors text-body-md font-medium">Browse the Collection →</Link>
+                <p className="text-h3 font-medium text-primary">Your cart is empty</p>
+                <p className="text-body-md text-on-surface-variant mt-2 mb-6">Start with pieces you've saved.</p>
+                <Link href="/wishlist" onClick={handleClose} className="inline-block text-accent hover:text-primary transition-colors text-body-md font-medium underline underline-offset-4">View Wishlist</Link>
               </div>
             )}
           </div>
@@ -121,11 +121,13 @@ export default function CartDrawer() {
         {items.length > 0 && (
           <div className="p-8 bg-surface-container border-t border-dashed border-border transition-colors duration-300 flex-shrink-0">
             <div className="space-y-3 mb-8">
-              <div className="flex justify-between text-body-sm"><span className="text-on-surface-variant">Subtotal</span><span className="font-semibold">{formatPrice(subtotal)}</span></div>
-              <div className="flex justify-between text-body-sm"><span className="text-on-surface-variant">Shipping</span><span className="font-semibold text-secondary">{formatPrice(shipping)}</span></div>
-              <div className="flex justify-between items-baseline pt-4 border-t border-outline-variant/30"><span className="font-vintage text-h3">Total</span><span className="text-price font-bold">{formatPrice(total)}</span></div>
+              <div className="flex justify-between text-body-sm"><span className="text-on-surface-variant">Subtotal</span><span className="font-semibold">{formatPrice(subtotal, currency)}</span></div>
+              <div className="flex justify-between text-body-sm"><span className="text-on-surface-variant">Shipping</span><span className="font-semibold text-secondary">{formatPrice(shipping, currency)}</span></div>
+              <div className="flex justify-between items-baseline pt-4 border-t border-outline-variant/30"><span className="font-vintage text-h3">Total</span><span className="text-price font-bold">{formatPrice(total, currency)}</span></div>
             </div>
+            <div className="text-xs text-on-surface-variant/50 text-center mb-3">Secure checkout. Prices are locked at this stage.</div>
             <button onClick={handleCheckout} className="w-full h-14 bg-secondary hover:opacity-90 active:scale-[0.98] transition-all duration-300 rounded-md flex items-center justify-center gap-3 text-label uppercase text-sm"><span>Secure Checkout</span><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg></button>
+            <p className="mt-6 text-[11px] text-on-surface-variant/40 text-center">Almost there → review and proceed to checkout</p>
             <div className="mt-6 flex flex-col items-center gap-2">
               <div className="flex items-center gap-2"><svg className="w-4 h-4 text-secondary" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg><p className="text-label text-on-surface-variant">Secure Checkout via PayFast (SA) &amp; PayPal (Intl).</p></div>
             </div>

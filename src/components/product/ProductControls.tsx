@@ -5,10 +5,10 @@ import { SIZE_OPTIONS } from '@/lib/constants'
 import type { Size } from '@/lib/types'
 import { useCartStore } from '@/store/cartStore'
 import { useOverlayStore } from '@/store/overlayStore'
-import { formatPrice, formatPriceUSD } from '@/lib/utils/formatPrice'
+import { formatPrice } from '@/lib/utils/formatPrice'
 
 interface ProductControlsProps {
-  product: { id: string; slug: string; name: string; price: { ZAR: number; USD: number }; images: { src: string; alt: string }[]; sizes?: Size[] }
+  product: { id: string; slug: string; name: string; price: { ZAR: number; USD: number; EUR: number }; images: { src: string; alt: string }[]; sizes?: Size[] }
 }
 
 export default function ProductControls({ product }: ProductControlsProps) {
@@ -29,7 +29,7 @@ export default function ProductControls({ product }: ProductControlsProps) {
 
   const handleAddToBag = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current)
-    addItem({ productId: product.id, slug: product.slug, name: product.name, priceZAR: product.price.ZAR, priceUSD: product.price.USD, currency: useCartStore.getState().currency, size: selectedSize, quantity: 1, image: product.images[0]?.src || '/images/placeholders/product/default.svg' })
+    addItem({ productId: product.id, slug: product.slug, name: product.name, price: { ZAR: product.price.ZAR, USD: product.price.USD, EUR: product.price.EUR }, currency: useCartStore.getState().currency, size: selectedSize, quantity: 1, image: product.images[0]?.src || '/images/placeholders/product/default.svg' })
     setAdded(true)
     timeoutRef.current = setTimeout(() => {
       setAdded(false)
@@ -42,10 +42,11 @@ export default function ProductControls({ product }: ProductControlsProps) {
     <div className="flex flex-col gap-8">
       <div className="space-y-4">
         <div className="flex items-center gap-6">
-          <span className="text-price font-light transition-colors duration-300">{currency === 'ZAR' ? formatPrice(product.price.ZAR) : formatPriceUSD(product.price.USD)}</span>
+          <span className="text-price font-light transition-colors duration-300">{formatPrice(product.price?.[currency] ?? product.price.ZAR, currency)}</span>
           <div className="flex items-center bg-surface-container p-1 rounded-full stitch-border transition-colors duration-300">
             <button onClick={() => setCurrency('ZAR')} className={`px-3 py-1 text-label rounded-full transition-all ${currency === 'ZAR' ? 'bg-card shadow-sm' : 'text-secondary'}`} aria-label="Show prices in ZAR">ZAR</button>
             <button onClick={() => setCurrency('USD')} className={`px-3 py-1 text-label rounded-full transition-all ${currency === 'USD' ? 'bg-card shadow-sm' : 'text-secondary'}`} aria-label="Show prices in USD">USD</button>
+            <button onClick={() => setCurrency('EUR')} className={`px-3 py-1 text-label rounded-full transition-all ${currency === 'EUR' ? 'bg-card shadow-sm' : 'text-secondary'}`} aria-label="Show prices in EUR">EUR</button>
           </div>
         </div>
       </div>

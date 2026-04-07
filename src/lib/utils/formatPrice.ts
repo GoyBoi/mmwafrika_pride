@@ -1,7 +1,17 @@
-export function formatPrice(amount: number): string {
-  return new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount)
+export type Currency = 'ZAR' | 'USD' | 'EUR'
+
+const CURRENCY_CONFIG: Record<Currency, { locale: string; minimumFractionDigits: number }> = {
+  ZAR: { locale: 'en-ZA', minimumFractionDigits: 0 },
+  USD: { locale: 'en-US', minimumFractionDigits: 2 },
+  EUR: { locale: 'en-DE', minimumFractionDigits: 2 },
 }
 
-export function formatPriceUSD(amount: number): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount)
+export function formatPrice(amount: number, currency: Currency = 'ZAR'): string {
+  const { locale, minimumFractionDigits } = CURRENCY_CONFIG[currency]
+  return new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency,
+    minimumFractionDigits,
+    maximumFractionDigits: 2,
+  }).format(amount)
 }

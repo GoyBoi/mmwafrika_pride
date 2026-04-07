@@ -1,7 +1,6 @@
 import { EXCHANGE_RATE_ZAR_TO_USD } from './constants'
-import type { Currency } from './types'
 
-export { formatPrice, formatPriceUSD } from '@/lib/utils/formatPrice'
+export { formatPrice, type Currency } from '@/lib/utils/formatPrice'
 
 export function convertZarToUsd(zarAmount: number): number { return Number((zarAmount * EXCHANGE_RATE_ZAR_TO_USD).toFixed(2)) }
 export function convertUsdToZar(usdAmount: number): number { return Number((usdAmount / EXCHANGE_RATE_ZAR_TO_USD).toFixed(2)) }

@@ -9,13 +9,33 @@ import CheckoutForm from '@/components/checkout/CheckoutForm'
 
 export default function CheckoutClient() {
   const items = useCartStore((s) => s.items)
-  const totalZAR = useCartStore((s) => s.getTotalPriceZAR())
+  const checkoutSession = useCartStore((s) => s.checkoutSession)
+  const beginCheckout = useCartStore((s) => s.beginCheckout)
+  const clearCart = useCartStore((s) => s.clearCart)
+  const clearCheckout = useCartStore((s) => s.clearCheckout)
+  const router = useRouter()
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => { setMounted(true) }, [])
 
-  const [snapshot] = useState(items)
-  const snapshotTotalZAR = snapshot.reduce((acc, item) => acc + item.priceZAR * item.quantity, 0)
+  // Guard: redirect if cart is empty
+  useEffect(() => {
+    if (mounted && items.length === 0) {
+      router.push('/collections')
+    }
+  }, [mounted, items.length, router])
+
+  useEffect(() => {
+    if (mounted && !checkoutSession && items.length > 0) {
+      beginCheckout()
+    }
+  }, [mounted, checkoutSession, items.length, beginCheckout])
+
+  useEffect(() => {
+    return () => {
+      clearCheckout()
+    }
+  }, [clearCheckout])
 
   if (!mounted) {
     return (
@@ -26,7 +46,7 @@ export default function CheckoutClient() {
     )
   }
 
-  if (items.length === 0) {
+  if (!checkoutSession || checkoutSession.items.length === 0) {
     return (
       <main className="min-h-screen flex flex-col items-center justify-center px-6">
         <svg className="w-20 h-20 text-on-surface-variant/30 mb-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 01-8 0" /></svg>
@@ -51,7 +71,7 @@ export default function CheckoutClient() {
       <h1 className="font-vintage text-h1 italic text-primary mb-12">Complete Your Order</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-16 lg:gap-20">
         <CheckoutForm />
-        <OrderSummary items={snapshot} totalZAR={snapshotTotalZAR} />
+        <OrderSummary session={checkoutSession} />
       </div>
     </main>
   )

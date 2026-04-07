@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef, type FormEvent, type ChangeEvent } from 'react'
 import { useCartStore } from '@/store/cartStore'
+import { useOrderStore } from '@/store/orderStore'
+import { useRouter } from 'next/navigation'
 
 interface ShippingForm { name: string; email: string; phone: string; address: string; city: string; province: string; postal: string; notes: string }
 interface FormErrors { [key: string]: string }
@@ -17,6 +19,10 @@ export default function CheckoutForm() {
   const [errorMessage, setErrorMessage] = useState('')
   const feedbackRef = useRef<HTMLDivElement>(null)
   const clearCart = useCartStore((s) => s.clearCart)
+  const clearCheckout = useCartStore((s) => s.clearCheckout)
+  const checkoutSession = useCartStore((s) => s.checkoutSession)
+  const createOrder = useOrderStore((s) => s.createOrder)
+  const router = useRouter()
 
   useEffect(() => { try { const saved = localStorage.getItem(STORAGE_KEY); if (saved) { const parsed = JSON.parse(saved) as ShippingForm; const isPristine = Object.values(INITIAL_FORM).every((v) => v === ''); if (isPristine) setForm(parsed) } } catch {} }, [])
   useEffect(() => { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(form)) } catch {} }, [form])
@@ -44,27 +50,24 @@ export default function CheckoutForm() {
     e.preventDefault(); setStatus('validating')
     const isValid = validate()
     if (!isValid) { setStatus('idle'); return }
+    if (!checkoutSession) { setStatus('error'); setErrorMessage('No checkout session found.'); return }
     try {
       setStatus('submitting')
       await new Promise((resolve) => setTimeout(resolve, 1200))
+
+      // Create the final order from the locked session
+      createOrder(checkoutSession)
+
       clearCart()
+      clearCheckout()
       try { localStorage.removeItem(STORAGE_KEY) } catch {}
-      setStatus('success')
+
+      // Navigate to confirmation
+      router.push('/order-confirmation')
     } catch { setErrorMessage('Something went wrong while processing your order. Please try again.'); setStatus('error') }
   }
 
   const isDisabled = status === 'submitting'
-
-  if (status === 'success') {
-    return (
-      <div ref={feedbackRef} className="border-stitch rounded-xl p-12 text-center bg-surface-container-lowest transition-colors duration-300">
-        <svg className="w-16 h-16 mx-auto text-success mb-6" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" /></svg>
-        <h2 className="font-vintage text-h2 italic text-primary mb-4">Details Received</h2>
-        <p className="text-body-md text-on-surface-variant max-w-sm mx-auto mb-2">Your shipping information has been saved and your cart has been cleared.</p>
-        <p className="font-bhineka text-h2 text-secondary max-w-sm mx-auto">Your piece is being prepared with love</p>
-      </div>
-    )
-  }
 
   const fields: { name: keyof ShippingForm; label: string; type?: string; optional?: boolean }[] = [
     { name: 'name', label: 'Full Name' }, { name: 'email', label: 'Email Address', type: 'email' },

@@ -1,12 +1,13 @@
 export interface Product {
   id: string; slug: string; name: string; description: string;
-  price: { ZAR: number; USD: number };
+  price: { ZAR: number; USD: number; EUR: number };
   images: ProductImage[];
   category: ProductCategory;
   subcategory?: string;
   sizes?: Size[];
   badge?: BadgeVariant;
   isPetSafe?: boolean;
+  isActive?: boolean;
   createdAt: string;
   environment: 'lifestyle' | 'pet';
   lifestyleImage: string;
@@ -25,7 +26,7 @@ export interface CommunityPhoto {
 export type ProductCategory = 'clothing' | 'plushies' | 'pets' | 'home'
 export type BadgeVariant = 'new' | 'handmade' | 'limited' | 'pet-safe'
 export type Size = 'S' | 'M' | 'L' | 'XL'
-export type Currency = 'ZAR' | 'USD'
+export type { Currency } from '@/lib/utils/formatPrice'
 export type ShippingRegion = 'za' | 'int'
 
 export interface ProductCardProps { product: Product; priority?: boolean }
