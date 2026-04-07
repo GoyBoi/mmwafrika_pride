@@ -1,0 +1,1280 @@
+# Phase 5: Frontend Audit & Checkout Preparation — 128-Question Suite
+
+**Date:** 2026-04-05
+**Project:** MmwAfrika Pride Couture
+**Framework:** Next.js 16.2.2 · React 19.2.4 · Tailwind CSS 4.2.2 · TypeScript 6.0.2
+**Scope:** Full frontend audit — API, routing, layout, components, theme, UX, accessibility, checkout hooks
+
+---
+
+## A. API & Data Layer (Mock API) — Questions 1–15
+
+**Q1. List all functions in `src/lib/api/products.ts`. Describe input parameters, return types, and simulated latency.**
+
+| Function | Params | Returns | Latency |
+|---|---|---|---|
+| `getProductsByCategory` | `category: string`, `delayMs: number = 800` | `Promise<Product[]>` | 800ms (configurable) |
+| `getProductBySlug` | `slug: string`, `delayMs: number = 800` | `Promise<Product \| undefined>` | 800ms (configurable) |
+| `getAllProducts` | `delayMs: number = 500` | `Promise<Product[]>` | 500ms (configurable) |
+
+**Status:** ✓ Clean, well-documented, all typed.
+
+---
+
+**Q2. Confirm all product slugs, categorized into pet vs human.**
+
+| Slug | Environment | Category |
+|---|---|---|
+| `umuntu-cardigan` | lifestyle | clothing |
+| `cashmere-blend-beanie` | lifestyle | clothing |
+| `pet-chunky-collar` | pet | pets |
+| `pet-fynbos-plushie` | pet | pets |
+
+**Status:** ✓ All pet slugs correctly prefixed with `pet-` for EnvironmentProvider auto-detection.
+
+---
+
+**Q3. List all Product fields; indicate optional vs required.**
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `id` | `string` | ✓ Required | Unique identifier |
+| `slug` | `string` | ✓ Required | URL-safe, globally unique |
+| `name` | `string` | ✓ Required | Display name |
+| `description` | `string` | ✓ Required | Product copy |
+| `price` | `{ ZAR: number; USD: number }` | ✓ Required | Dual-currency |
+| `images` | `ProductImage[]` | ✓ Required | Array of `{src, alt, width, height}` |
+| `category` | `ProductCategory` | ✓ Required | `'clothing' \| 'plushies' \| 'pets' \| 'home'` |
+| `subcategory` | `string` | ✗ Optional | Not used yet |
+| `sizes` | `Size[]` | ✗ Optional | `['S','M','L','XL']` |
+| `badge` | `BadgeVariant` | ✗ Optional | `'new' \| 'handmade' \| 'limited' \| 'pet-safe'` |
+| `isPetSafe` | `boolean` | ✗ Optional | Pet-safe material flag |
+| `createdAt` | `string` | ✓ Required | ISO date string |
+| `environment` | `'lifestyle' \| 'pet'` | ✓ Required | Drives theme override |
+| `lifestyleImage` | `string` | ✓ Required | Secondary lifestyle/detail image path |
+
+**Status:** ✓ Well-structured. `subcategory` and `badge` are optional as expected.
+
+---
+
+**Q4. Are product images fully loaded or do we use placeholders first?**
+
+Currently all images reference `/images/placeholders/product/default.svg`, `/images/placeholders/hero/default.svg`, or `/images/placeholders/bento/default.svg`. These are static SVG placeholders. The infrastructure supports real images — the `ProductImage` interface includes `width`/`height` for aspect ratio reservation (CLS prevention).
+
+**Status:** ⚠ Placeholder-only. Real images needed before production.
+
+---
+
+**Q5. Can `getProductBySlug(slug)` simulate notFound and network delay correctly?**
+
+Yes. Returns `undefined` for unknown slugs after 800ms delay. The PDP page handles this with `notFound()` from `next/navigation`. Loading skeleton (`loading.tsx`) displays during the 800ms window.
+
+**Status:** ✓ Working correctly.
+
+---
+
+**Q6. Are price, variant, and category fields consistent across products?**
+
+- **Price:** All 4 products have `{ ZAR: number, USD: number }` — consistent.
+- **Variants:** `sizes` field present on clothing products, absent on pet products — correct behavior (optional field).
+- **Category:** All 4 products have valid `ProductCategory` values.
+
+**Status:** ✓ Consistent.
+
+---
+
+**Q7. Are lifestyle images included for every product?**
+
+Yes. All 4 products have `lifestyleImage` defined. Clothing products use distinct images (`hero/default.svg`, `bento/default.svg`), pet products use `product/default.svg`.
+
+**Status:** ✓ All present.
+
+---
+
+**Q8. Are alt attributes applied for all images?**
+
+- PDP main image: `product.images[0]?.alt || product.name` ✓
+- PDP lifestyle image: `` `Close-up detail of ${product.name}` `` ✓
+- ProductCard main: `mainImage?.alt || name` ✓
+- ProductCard lifestyle: `` `Close-up detail of ${name}` `` ✓
+
+**Status:** ✓ All images have descriptive alt text.
+
+---
+
+**Q9. Are mock products typed with TypeScript?**
+
+Yes. `allProducts: Product[]` — the array is explicitly typed. TypeScript compiler will catch any missing required fields.
+
+**Status:** ✓ Fully typed.
+
+---
+
+**Q10. Can mock API return errors or 404s? How are they handled in the frontend?**
+
+- `getProductBySlug` returns `undefined` for missing slugs (simulates 404).
+- The PDP page calls `notFound()` from `next/navigation` when product is `undefined`.
+- No simulated network errors (timeouts, 500s) — the mock always resolves successfully.
+
+**Status:** ✓ 404 handled. ⚠ No error/timeout simulation — add `throw new Error()` path for future error boundary testing.
+
+---
+
+**Q11. Are product slugs globally unique?**
+
+Yes. All 4 slugs are unique: `umuntu-cardigan`, `cashmere-blend-beanie`, `pet-chunky-collar`, `pet-fynbos-plushie`.
+
+**Status:** ✓ Unique.
+
+---
+
+**Q12. Are there future hooks ready for inventory or stock indicators?**
+
+No `stock`, `inventory`, or `available` field exists in the `Product` interface. This will need to be added before checkout integration.
+
+**Status:** ✗ Missing. **Recommendation:** Add `stock?: number` or `availability: 'in-stock' | 'low-stock' | 'out-of-stock'` to `Product` interface.
+
+---
+
+**Q13. Are category labels dynamically generated from slugs?**
+
+Yes. `formatCategoryLabel()` in both `collections/[category]/page.tsx` and `products/[slug]/page.tsx` splits on `[-_]+` and capitalizes each word. E.g., `pet-chunky-collar` → `Pet Chunky Collar`, `clothing` → `Clothing`.
+
+**Status:** ✓ Working. Note: the PDP uses `product.category` (not the URL param) to build breadcrumbs, which is more reliable.
+
+---
+
+**Q14. Confirm how pet vs human items are detected via slug prefix.**
+
+`EnvironmentProvider.tsx` checks:
+```ts
+const isPetEnv = pathname.includes('/pets') || pathname.includes('/pet-')
+```
+This catches both collection pages (`/collections/pets`) and individual pet product pages (`/products/pet-chunky-collar`). The `pet-` prefix in slugs is the detection key.
+
+**Status:** ✓ Correct and robust.
+
+---
+
+**Q15. Are any deprecated or legacy products still in the mock array?**
+
+No. All 4 products use the current `Product` interface with all required fields (`environment`, `lifestyleImage`).
+
+**Status:** ✓ Clean.
+
+---
+
+## B. Routing & Server Components — Questions 16–32
+
+**Q16. List all dynamic routes under `src/app/products/[slug]`.**
+
+| File | Type | Purpose |
+|---|---|---|
+| `products/[slug]/page.tsx` | Async Server Component | Product detail page |
+| `products/[slug]/loading.tsx` | Client Component (auto) | Skeleton during data fetch |
+
+**Status:** ✓ Complete.
+
+---
+
+**Q17. Confirm `[slug]/page.tsx` is an async server component.**
+
+Yes. `export default async function ProductPage(props: ProductPageProps)` — no `'use client'` directive. Uses `await props.params` and `await getProductBySlug()`.
+
+**Status:** ✓ Confirmed.
+
+---
+
+**Q18. Confirm `loading.tsx` is triggered during async fetch.**
+
+Yes. Next.js automatically shows `loading.tsx` during the `await getProductBySlug()` call. The skeleton mirrors the split-screen layout with `animate-pulse` placeholders.
+
+**Status:** ✓ Working.
+
+---
+
+**Q19. Describe what triggers `notFound()` and how it's displayed.**
+
+Triggered when `getProductBySlug(params.slug)` returns `undefined` (unknown slug). Next.js's `notFound()` renders the `app/not-found.tsx` page — the cinematic 404 with "This stitch has come undone" copy, stitch-framed card, Browse Collections/Return Home CTAs, and WhatsApp help link.
+
+**Status:** ✓ Graceful 404 experience.
+
+---
+
+**Q20. Are dynamic route parameters type-safe with TypeScript?**
+
+Yes. `interface ProductPageProps { params: Promise<{ slug: string }> }` — the `slug` is typed as `string`. Next.js 16 uses `Promise`-based params which is correctly awaited.
+
+**Status:** ✓ Type-safe.
+
+---
+
+**Q21. Any redirects or guards in place?**
+
+- `app/admin/page.tsx` has an `isAdmin` compile-time constant guard (`export const isAdmin = false`).
+- No redirects (e.g., `/old-slug` → `/new-slug`) configured.
+- No middleware (`middleware.ts`) file exists.
+
+**Status:** ⚠ Admin guard is non-functional (hardcoded `false`). No middleware for redirects.
+
+---
+
+**Q22. Are breadcrumbs generated based on route parameters?**
+
+Yes. Breadcrumbs use `product.category` to dynamically build the path:
+```ts
+const categoryPath = product.category === 'pets' ? '/collections/pets' : `/collections/${product.category}`
+```
+This produces: `Home → Pets → Chunky Collar` or `Home → Clothing → Umuntu Cardigan`.
+
+**Status:** ✓ Dynamic and correct.
+
+---
+
+**Q23. Does the route integrate with EnvironmentProvider?**
+
+Yes. `EnvironmentProvider` runs globally in `layout.tsx`. When navigating to `/products/pet-chunky-collar`, the `pathname.includes('/pet-')` check matches, adding `env-pets` to `<body>`. The entire page (Navbar, Footer, PDP accent colors) shifts to the Pet Boutique sage theme.
+
+**Status:** ✓ Integrated.
+
+---
+
+**Q24. Are page components lazy-loaded or pre-fetched?**
+
+- Server components are rendered on-demand by Next.js.
+- `next/link` enables automatic prefetching of linked pages on hover (default behavior).
+- No explicit `React.lazy()` or dynamic `import()` used.
+
+**Status:** ✓ Standard Next.js prefetching active.
+
+---
+
+**Q25. Can the same layout support mobile and desktop breakpoints?**
+
+Yes. The PDP uses `grid grid-cols-1 lg:grid-cols-2` — stacks vertically on mobile, side-by-side on desktop. The left column loses `lg:sticky` on mobile (sticky only applies at `lg` breakpoint). All typography uses responsive scale (`text-4xl md:text-5xl lg:text-6xl`).
+
+**Status:** ✓ Fully responsive.
+
+---
+
+**Q26. Are default fallback props applied for missing product data?**
+
+- `product.images[0]?.src || '/images/placeholders/product/default.svg'` — fallback for missing image.
+- `product.images[0]?.alt || product.name` — fallback for missing alt text.
+- `product.badge` is optional — conditionally rendered with `{product.badge && (...)}`.
+- No fallback for missing `product.name` or `product.price` — these are required fields.
+
+**Status:** ✓ Graceful for optional fields. Required fields assumed present (enforced by TypeScript).
+
+---
+
+**Q27. Is there error boundary handling for the page component?**
+
+No `error.tsx` file exists in `app/products/[slug]/` or `app/`. If `getProductBySlug` throws, Next.js will show its default error page in dev, and a generic error in production.
+
+**Status:** ✗ Missing. **Recommendation:** Add `app/error.tsx` for graceful error handling.
+
+---
+
+**Q28. Are all page components SSR-friendly?**
+
+Yes. All page components (`page.tsx` files) are Server Components with no `'use client'` directive. `ProductControls` is the only client component on the PDP, imported as a leaf component.
+
+**Status:** ✓ All SSR-friendly.
+
+---
+
+**Q29. Are nested routes (like `/reviews` or `/details`) supported or planned?**
+
+No nested routes exist under `products/[slug]/`. The accordion sections are inline `<details>` elements, not separate routes.
+
+**Status:** ⚠ Not planned yet. Current accordion approach is sufficient for now — no need for route-level separation.
+
+---
+
+**Q30. Does `page.tsx` handle multiple concurrent fetches safely?**
+
+Only one fetch: `await getProductBySlug(params.slug)`. No concurrent fetches. When product data is fetched, it's passed as props to `ProductControls` (synchronous, no additional fetches).
+
+**Status:** ✓ Single fetch, safe.
+
+---
+
+**Q31. Are route transitions animated or abrupt?**
+
+Next.js client-side navigation is instant (no built-in transition animation). The page content appears after the `loading.tsx` skeleton dismisses. No page transition animations exist.
+
+**Status:** ⚠ Abrupt. **Recommendation:** Add Framer Motion page transitions when `framer-motion` is installed (Phase 7+).
+
+---
+
+**Q32. Are query params used anywhere (e.g., for variants)?**
+
+No query parameters are read or used in any route. `ProductControls` manages currency toggle and size selection internally with React state — no URL sync.
+
+**Status:** ⚠ No URL sync for selected size/currency. **Recommendation:** For shareable product views, consider syncing `?size=M&currency=ZAR` to URL search params.
+
+---
+
+## C. Layout & Cinematic UI — Questions 33–56
+
+**Q33. Describe split-screen layout: desktop vs mobile behavior.**
+
+- **Desktop (lg+):** `grid-cols-2` — left column sticky with 2 images stacked, right column scrolling with title/price/controls/accordions.
+- **Mobile (<lg):** Single column, images stack above details. No sticky behavior.
+
+**Status:** ✓ Correct implementation.
+
+---
+
+**Q34. Confirm sticky left column and scrollable right column.**
+
+Left column: `lg:sticky lg:top-24 space-y-6 self-start` — sticks 96px from top. Right column: `flex flex-col space-y-10` — scrolls naturally.
+
+**Status:** ✓ Confirmed.
+
+---
+
+**Q35. Column widths for lg, md, sm breakpoints.**
+
+| Breakpoint | Layout | Gap |
+|---|---|---|
+| `sm` (<768px) | `grid-cols-1` (stacked) | `gap-16` |
+| `md` (768–1023px) | `grid-cols-1` (stacked) | `gap-16` |
+| `lg` (1024px+) | `grid-cols-2` (50/50) | `gap-20` |
+
+**Status:** ✓ Appropriate.
+
+---
+
+**Q36. Are flex/grid utilities responsive with Tailwind breakpoints?**
+
+Yes. Uses `grid-cols-1 lg:grid-cols-2`, `text-4xl md:text-5xl lg:text-6xl`, `px-6 md:px-8` throughout.
+
+**Status:** ✓ Responsive utilities applied consistently.
+
+---
+
+**Q37. Does left column maintain aspect ratios on image resize?**
+
+Primary image: `aspect-[4/5]`. Lifestyle image: `aspect-[4/3]`. Both use CSS `aspect-ratio` which maintains proportions regardless of viewport width.
+
+**Status:** ✓ Maintained.
+
+---
+
+**Q38. Does the carousel (if present) work on mobile?**
+
+No carousel on the PDP — two static images stacked. The collection page's mobile carousel was removed in the Phase 4 rewrite (now uses `ProductGrid` which is responsive grid).
+
+**Status:** N/A — no carousel. If multi-image gallery is needed later, add a separate `ImageGallery` component.
+
+---
+
+**Q39. Are hover, scale, and transition effects applied to images?**
+
+Both images: `transition-transform duration-700 hover:scale-[1.02]` — subtle 2% zoom on hover over 700ms.
+
+**Status:** ✓ Applied consistently.
+
+---
+
+**Q40. Are typography tokens applied correctly for title, price, and headings?**
+
+| Element | Classes | Token |
+|---|---|---|
+| Title | `font-headline text-4xl md:text-5xl lg:text-6xl font-bold text-primary italic` | `--font-headline` ✓ |
+| Price | `text-3xl font-body font-light text-accent` | `--font-body`, `--color-accent` ✓ |
+| Accordion headings | `font-headline text-xl text-primary` | `--font-headline` ✓ |
+| Body copy | `text-lg text-on-surface-variant font-body font-light` | `--font-body`, `--color-on-surface-variant` ✓ |
+
+**Status:** ✓ All tokens applied correctly.
+
+---
+
+**Q41. Confirm spacing tokens for margins and padding.**
+
+Uses Tailwind spacing (`space-y-10`, `gap-16`, `py-6`, `pb-32`, `px-6 md:px-8`). No custom spacing CSS variables used for layout — relies on Tailwind's default scale.
+
+**Status:** ✓ Consistent. Note: `--spacing-section` CSS variables exist in globals.css but aren't referenced in components.
+
+---
+
+**Q42. Are horizontal and vertical scrolls behaving correctly?**
+
+No horizontal scrolling. Vertical scroll is native browser behavior. `overflow-hidden` applied to image containers to prevent content bleed.
+
+**Status:** ✓ Correct.
+
+---
+
+**Q43. Do images stack naturally on mobile (flex-col) with correct spacing?**
+
+On mobile (`<lg`), the grid collapses to `grid-cols-1`. Images stack vertically with `space-y-6` gap. Below the images, the right column content begins with the title. Reading order is logical: images → title → price → description → controls → accordions.
+
+**Status:** ✓ Correct reading order.
+
+---
+
+**Q44. Are all interactive elements visually consistent with brand styling?**
+
+- Buttons: `.btn-primary`, `.btn-accent`, or inline `bg-accent text-accent-fg` with `crochet-shadow`.
+- Size selectors: `border border-border` → `border-2 border-accent` when selected.
+- Accordions: Native `<details>` styled with `border-b border-border/30`.
+- All use semantic color tokens.
+
+**Status:** ✓ Consistent.
+
+---
+
+**Q45. Confirm all accordions animate smoothly on open/close.**
+
+Using native `<details>` elements — no CSS transition on `open` state. The chevron icon rotates with `transition-transform duration-300 group-open:rotate-180`. The content itself snaps open/closed without animation.
+
+**Status:** ⚠ Chevron animates smoothly, but content expansion is instant. **Recommendation:** For animated accordion content, use Framer Motion or the `@radix-ui/react-collapsible` package.
+
+---
+
+**Q46. Are accordion chevrons rotated on open?**
+
+Yes. `group-open:rotate-180` on the chevron SVG.
+
+**Status:** ✓ Working.
+
+---
+
+**Q47. Are borders (`border-stitch`) applied consistently?**
+
+- Between price and controls: `<div className="border-stitch" />` ✓
+- Between controls and accordions: `<div className="border-stitch" />` ✓
+- Each accordion section: `border-b border-border/30` ✓
+
+**Status:** ✓ Consistent stitch divider usage.
+
+---
+
+**Q48. Are shadows, hover effects, and subtle zooms consistent across images?**
+
+- Primary image: `crochet-shadow` + `hover:scale-[1.02]` ✓
+- Lifestyle image: no shadow (subtle distinction from primary) + `hover:scale-[1.02]` ✓
+- ProductCard images: `crochet-shadow` + `group-hover:-translate-y-1` + `scale-110` ✓
+
+**Status:** ✓ Consistent and intentional.
+
+---
+
+**Q49. Does layout handle very long product titles or descriptions without breaking?**
+
+Title: `text-4xl md:text-5xl lg:text-6xl` with `tracking-tight leading-tight` — will wrap naturally. No `truncate` or line-clamp applied.
+Description: `max-w-lg` constrains width — long descriptions wrap within the constraint.
+
+**Status:** ✓ Wraps gracefully. No overflow.
+
+---
+
+**Q50. Is there proper padding between image and accordion sections?**
+
+Left column images have `space-y-6`. Right column sections have `space-y-10`. Accordions have `py-6` internal padding with `border-b` dividers.
+
+**Status:** ✓ Generous, luxurious spacing.
+
+---
+
+**Q51. Are lifestyle images labeled or captioned appropriately?**
+
+Yes. A glass-overlay label at the bottom-left reads "Stitch Detail" using `.label-sm` token.
+
+**Status:** ✓ Labeled.
+
+---
+
+**Q52. Are decorative elements (glass overlays, stitching labels) implemented as CSS or images?**
+
+- `.glass` — CSS class using `color-mix()` + `backdrop-filter: blur(12px)`.
+- `.border-stitch` — CSS class using `border: 1px dashed var(--color-border)`.
+- `.crochet-shadow` — CSS class using `box-shadow: var(--shadow-crochet)`.
+
+**Status:** ✓ All CSS-based, no decorative images.
+
+---
+
+**Q53. Do split-screen and stacked layouts share consistent typography and spacing?**
+
+Yes. Both use the same `font-headline`, `font-body`, `font-label` tokens. Spacing uses consistent Tailwind scale (`space-y-*`, `gap-*`).
+
+**Status:** ✓ Consistent.
+
+---
+
+**Q54. Are Tailwind class utilities used consistently or scattered?**
+
+Consistent pattern across all components. CSS variables for colors/fonts, Tailwind for layout/spacing/transitions. No inline styles except the 404 `textShadow`.
+
+**Status:** ✓ Consistent. One inline style (`style={{ textShadow: ... }}` in 404) — acceptable for CSS `color-mix()` not yet supported in Tailwind.
+
+---
+
+**Q55. Any potential layout clashes with Navbar or Footer?**
+
+Navbar is `fixed top-0 w-full z-50 h-20`. The PDP `<main>` has `pt-24` — 80px navbar + 16px breathing room. No overlap.
+
+**Status:** ✓ No clash.
+
+---
+
+**Q56. Does layout degrade gracefully on narrow viewports (<400px)?**
+
+At 375px (iPhone SE): `px-6` = 24px padding each side, leaving 327px content width. `text-4xl` title wraps. `aspect-[4/5]` image is 327×409px. All elements fit.
+
+**Status:** ✓ Graceful. No horizontal scroll.
+
+---
+
+## D. Components & Reusability — Questions 57–76
+
+**Q57. List all components used on the PDP and their purpose.**
+
+| Component | Type | Purpose |
+|---|---|---|
+| `ProductControls` | Client | Size selector, currency toggle, Add to Bag button |
+| `EnvironmentProvider` | Client | Route-based theme switching |
+| `Navbar` | Client | Global navigation |
+| `Footer` | Server | Global footer |
+| `WhatsAppFAB` | Server | WhatsApp floating action button |
+| `ThemeToggle` | Client | Dark/light mode toggle |
+| `CurrencyToggle` | Client | ZAR/USD toggle |
+| `MobileMenu` | Client | Mobile navigation drawer |
+
+**Status:** ✓ Clear separation of concerns.
+
+---
+
+**Q58. Confirm `ProductControls` is visually present but inactive.**
+
+Yes. Renders size selector, currency toggle, and "Add to Bag" button. The button has no `onClick` handler. Size selection updates local state but doesn't affect anything downstream.
+
+**Status:** ✓ Dormant but present.
+
+---
+
+**Q59. What props does `ProductControls` currently accept?**
+
+```ts
+interface ProductControlsProps {
+  priceZAR: number
+  priceUSD: number
+}
+```
+
+**Status:** ⚠ Missing `onAddToBag`, `onSelectSize`, `sizes`, `stock` props needed for checkout integration.
+
+---
+
+**Q60. Are components fully typed with TypeScript?**
+
+Yes. All components have typed props interfaces. `ProductControlsProps`, `ProductCardProps`, `CartDrawerProps`, etc. are defined in `lib/types.ts`.
+
+**Status:** ✓ Fully typed.
+
+---
+
+**Q61. Any legacy or dead code in components?**
+
+- `CartDrawer.tsx` still has `mockProducts` and `mockCartItems` — will be replaced by real cart context.
+- `Navbar.tsx` bag badge shows hardcoded `"2"` — will connect to cart state.
+- `CommunityPage` local `CommunityPhoto` interface shadows the one in `lib/types.ts` (which has additional `contributor` and `status` fields).
+
+**Status:** ⚠ Mock data is expected (not yet connected to backend). Type shadowing in CommunityPage should be resolved.
+
+---
+
+**Q62. Are breadcrumbs a reusable component?**
+
+No. Breadcrumbs are inline in `products/[slug]/page.tsx`. Not extracted to a `<Breadcrumb>` component.
+
+**Status:** ⚠ Inline. **Recommendation:** Extract to `components/navigation/Breadcrumb.tsx` before building more routes.
+
+---
+
+**Q63. Are accordions reusable across PDPs?**
+
+No. Three `<details>` elements are hardcoded inline. Not extracted to an `<Accordion>` component.
+
+**Status:** ⚠ Inline. **Recommendation:** Extract to `components/ui/Accordion.tsx` with `AccordionItemProps` from `lib/types.ts`.
+
+---
+
+**Q64. Are images wrapped in dedicated Image components?**
+
+No. Using native `<img>` tags throughout. Not using Next.js `<Image>` component.
+
+**Status:** ⚠ Native `<img>` used. **Recommendation:** Replace with `next/image` for automatic optimization, lazy loading, and CLS prevention when real images are added.
+
+---
+
+**Q65. Are all buttons styled with tokens and variables?**
+
+- Add to Bag: `bg-accent text-accent-fg` ✓
+- Size buttons: `border-accent text-accent-fg` when selected ✓
+- Currency buttons: `bg-card text-primary` when active ✓
+- 404 CTAs: `.btn-primary`, `.btn-secondary` ✓
+
+**Status:** ✓ All buttons use semantic tokens.
+
+---
+
+**Q66. Are hover/focus states implemented for all buttons?**
+
+- Add to Bag: `hover:opacity-90 active:scale-[0.98]` ✓
+- Size buttons: `hover:border-accent` ✓
+- Currency buttons: no hover state (only active/inactive visual) ⚠
+- Breadcrumb links: `hover:text-accent` ✓
+
+**Status:** ⚠ Currency toggle buttons lack hover state.
+
+---
+
+**Q67. Are all components accessible via keyboard?**
+
+- All interactive elements are `<button>` or `<a>` — keyboard focusable by default.
+- `aria-label` on all icon-only buttons ✓
+- `aria-current="page"` on breadcrumb ✓
+- `tabindex` not explicitly set (relies on DOM order — correct).
+
+**Status:** ✓ Keyboard accessible.
+
+---
+
+**Q68. Do components support dark/light or theme switching?**
+
+Yes. All colors use CSS variables that swap between light/dark values via `.dark` class on `<html>`. The `env-pets` class further overrides accent colors.
+
+**Status:** ✓ Full theme support.
+
+---
+
+**Q69. Any components that could be reused for cart/checkout?**
+
+- `ProductControls` → size/currency selection pattern
+- `CartDrawer` → drawer layout, item rows, checkout footer
+- `.btn-primary`, `.btn-secondary`, `.btn-accent` → CTA buttons
+- `.border-stitch` → section dividers
+- `glass` → overlay effects
+
+**Status:** ✓ Good reusable foundation.
+
+---
+
+**Q70. Are text headings and paragraphs semantically correct?**
+
+- PDP title: `<h1>` ✓
+- Accordion headings: `<span>` inside `<summary>` — should be styled text, not heading elements ⚠
+- Description: `<p>` ✓
+- Breadcrumb nav: `<nav>` with `aria-label` ✓
+
+**Status:** ⚠ Accordion trigger text should use heading tags or at least `<span role="heading">`.
+
+---
+
+**Q71. Are components optimized for performance (memoization, lazy loading)?**
+
+- No `React.memo()` used anywhere.
+- No `useMemo` or `useCallback` except in `useTheme` (for `toggle`).
+- Product images use `loading={priority ? 'eager' : 'lazy'}` ✓
+- Server components are inherently optimized by Next.js.
+
+**Status:** ⚠ No client-side memoization. For current complexity, not needed. Revisit if re-render issues arise.
+
+---
+
+**Q72. Are transition and animation classes reusable or duplicated?**
+
+Reusable: `.product-card`, `.quick-view`, `.product-image` in `globals.css` handle card hover effects. Inline `transition-*` classes used for unique transitions.
+
+**Status:** ✓ Mix of reusable CSS classes and Tailwind utilities.
+
+---
+
+**Q73. Are accordions accessible with `aria-expanded`?**
+
+Native `<details>/<summary>` elements manage their own `aria-expanded` state automatically in modern browsers.
+
+**Status:** ✓ Native accessibility.
+
+---
+
+**Q74. Are skeleton placeholders built as separate reusable components?**
+
+No. Skeleton code is inline in each `loading.tsx` file. Not extracted to a `<ProductCardSkeleton>` or `<PDPSkeleton>` component.
+
+**Status:** ⚠ Duplicated skeleton patterns. **Recommendation:** Extract reusable skeleton components when adding more routes.
+
+---
+
+**Q75. Do all component props have clear default values?**
+
+- `ProductCard`: `priority = false` ✓
+- `ProductGrid`: `columns = 4`, `priority = false` ✓
+- `ProductControls`: no defaults (both prices required) ✓
+
+**Status:** ✓ Clear defaults documented.
+
+---
+
+**Q76. Are components modular enough for rapid checkout integration?**
+
+Yes. Component boundaries are clean:
+- `ProductControls` is self-contained — just needs additional props for cart integration.
+- `CartDrawer` already has the drawer UI, item rows, and checkout footer — just needs real data props.
+- Layout components (`Navbar`, `Footer`) are independent of page content.
+
+**Status:** ✓ Modular enough.
+
+---
+
+## E. Environment / Theme / Global State — Questions 77–89
+
+**Q77. Describe `EnvironmentProvider` logic for pet vs human products.**
+
+```ts
+const isPetEnv = pathname.includes('/pets') || pathname.includes('/pet-')
+document.body.classList.toggle('env-pets', isPetEnv)
+```
+Triggers on any URL containing `/pets` (collection page) or `/pet-` (individual pet product slug). Adds/removes `env-pets` class on `<body>`.
+
+**Status:** ✓ Simple and effective.
+
+---
+
+**Q78. Confirm Navbar and Footer respond to environment changes.**
+
+Both Navbar and Footer use `bg-accent`, `text-accent`, `text-accent-fg` etc. When `env-pets` is on `<body>`, `--color-accent` shifts from `#C6A962` to `#829273` (Premium Sage). The Navbar logo background, active link underline, and Footer links all inherit this change via CSS cascade.
+
+**Status:** ✓ Auto-inherited through CSS variables.
+
+---
+
+**Q79. Any global CSS variables applied (colors, spacing, typography)?**
+
+Yes. 40+ CSS variables defined in `@theme` block and `.dark` override. All semantic: `--color-*`, `--font-*`, `--shadow-*`, `--spacing-*`, `--animate-*`.
+
+**Status:** ✓ Comprehensive token system.
+
+---
+
+**Q80. Is Tailwind theme extended or using vanilla classes?**
+
+Using Tailwind CSS v4's `@theme` directive to register custom CSS variables. These become Tailwind utilities automatically (e.g., `bg-accent`, `text-primary`, `shadow-crochet`). Not using `tailwind.config.js` for theme extension.
+
+**Status:** ✓ Modern Tailwind v4 approach.
+
+---
+
+**Q81. Are environment changes animated or abrupt?**
+
+The `body, header, footer, .btn-primary` transition rule applies `transition: background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease`. Environment swaps are smooth 500ms crossfades.
+
+**Status:** ✓ Smoothly animated.
+
+---
+
+**Q82. Is there any context currently managing selected product info?**
+
+No React Context exists. Product data flows from Server Component → props → client components. `ProductControls` manages its own size/currency state locally.
+
+**Status:** ⚠ No shared state layer yet. Needed for cart integration.
+
+---
+
+**Q83. Are environment-dependent colors used consistently across components?**
+
+Yes. All accent-colored elements (`bg-accent`, `text-accent`, `border-accent`, `text-accent-fg`) automatically shift when `env-pets` overrides `--color-accent` and `--color-accent-fg`.
+
+**Status:** ✓ Consistent.
+
+---
+
+**Q84. Are theme tokens reusable for checkout layout?**
+
+Yes. All checkout UI (cart items, totals, CTA buttons) can use the same `--color-*`, `--font-*`, `--shadow-*` tokens. The token system is page-agnostic.
+
+**Status:** ✓ Ready for checkout.
+
+---
+
+**Q85. Is there any conflict between Tailwind defaults and custom CSS?**
+
+- `--color-secondary` is defined twice in `@theme` block (line 16 and line 35). The second definition (`#586249` sage) overrides the first (`#5C5C5C` gray). This is intentional — the sage color is the brand's true secondary.
+- `container` class is overridden with custom max-width and padding.
+
+**Status:** ⚠ Duplicate `--color-secondary` definition. The override is intentional but could confuse future maintainers. **Recommendation:** Remove the first `--color-secondary: #5C5C5C` definition to eliminate ambiguity.
+
+---
+
+**Q86. Are breakpoints shared between environment layouts?**
+
+Yes. Both environments use the same Tailwind breakpoints (`sm`, `md`, `lg`, `xl`). No environment-specific breakpoints exist.
+
+**Status:** ✓ Shared.
+
+---
+
+**Q87. Are font tokens consistent across pages?**
+
+Yes. `--font-headline` (Noto Serif), `--font-body` (Inter), `--font-label` (Inter), `--font-serif` (Noto Serif), `--font-sans` (Inter) are defined once in `@theme` and used everywhere.
+
+**Status:** ✓ Consistent.
+
+---
+
+**Q88. Can environment logic handle new categories (e.g., limited edition)?**
+
+Current logic only checks for `/pets` and `/pet-`. Adding a new environment (e.g., "limited edition" with gold theme) would require:
+1. Adding a new CSS class override (e.g., `body.env-limited`)
+2. Updating `EnvironmentProvider` to detect the new pattern
+
+**Status:** ⚠ Not extensible yet. **Recommendation:** Refactor to a config-driven approach: `const ENVIRONMENTS = { pets: { match: ['/pets', '/pet-'], class: 'env-pets' } }`.
+
+---
+
+**Q89. Are dark mode or accessibility modes handled?**
+
+Dark mode: ✓ Full support via `.dark` class on `<html>`.
+Reduced motion: ✓ `@media (prefers-reduced-motion: reduce)` collapses all transitions to 0.01ms.
+
+**Status:** ✓ Both handled.
+
+---
+
+## F. UX, Accessibility & Edge Cases — Questions 90–110
+
+**Q90. Are keyboard and screen reader users able to navigate PDP?**
+
+- Tab order: Breadcrumbs → Title → Price → Description → Size buttons → Currency toggle → Add to Bag → Accordions
+- All interactive elements are `<button>` or `<a>` — focusable by default.
+- `aria-label` on icon-only buttons.
+- `aria-current="page"` on active breadcrumb.
+- Native `<details>` elements are screen-reader accessible.
+
+**Status:** ✓ Accessible.
+
+---
+
+**Q91. Are alt texts applied to all images?**
+
+Yes. See Q8.
+
+**Status:** ✓ All images have alt text.
+
+---
+
+**Q92. Does accordion work with keyboard focus?**
+
+Native `<details>/<summary>` is keyboard accessible — Enter/Space toggles, Tab moves focus.
+
+**Status:** ✓ Native keyboard support.
+
+---
+
+**Q93. Are hover effects visible for non-pointer devices?**
+
+Hover effects (`hover:scale-[1.02]`, `hover:opacity-90`) don't activate on touch devices. This is correct CSS behavior — touch devices get the default state. No visual degradation occurs.
+
+**Status:** ✓ Graceful degradation.
+
+---
+
+**Q94. Are skeleton loaders visible during slow fetch?**
+
+Yes. `loading.tsx` files for both collection and PDP routes display `animate-pulse` skeletons during the 800ms fetch window.
+
+**Status:** ✓ Working.
+
+---
+
+**Q95. Does the layout handle missing images gracefully?**
+
+Yes. Fallback: `product.images[0]?.src || '/images/placeholders/product/default.svg'`. If `images` array is empty, the placeholder SVG displays.
+
+**Status:** ✓ Graceful.
+
+---
+
+**Q96. Is `notFound()` user-friendly?**
+
+Yes. The 404 page has:
+- Brand-aligned copy ("This stitch has come undone")
+- Two clear CTAs (Browse Collections, Return Home)
+- WhatsApp help link ("Lost? Let us help you find your way")
+- Glass-morphism card with stitch border
+
+**Status:** ✓ Excellent UX.
+
+---
+
+**Q97. Are long product names truncated or wrapped correctly?**
+
+Title has no truncation — it wraps naturally within the column width. `tracking-tight leading-tight` helps with tight rendering.
+
+**Status:** ✓ Wraps correctly. No truncation needed for expected product name lengths.
+
+---
+
+**Q98. Does mobile stacking maintain correct reading order?**
+
+Yes. On mobile: Navbar → Breadcrumbs → Primary Image → Lifestyle Image → Title → Price → Description → Controls → Accordions → Footer. This is the natural DOM order and logical reading sequence.
+
+**Status:** ✓ Correct.
+
+---
+
+**Q99. Are interactive elements sized for touch targets?**
+
+- Size buttons: `w-14 h-14` (56×56px) — exceeds 44px minimum ✓
+- Currency toggle: `px-3 py-1` inside a container — may be slightly under 44px ⚠
+- Add to Bag: `w-full py-5` (full width, 80px tall) ✓
+- Accordion summaries: `py-6` (generous) ✓
+
+**Status:** ⚠ Currency toggle buttons could be larger for touch targets.
+
+---
+
+**Q100. Any broken link risks in breadcrumbs?**
+
+Breadcrumb links: `/` (exists), `/collections/pets` or `/collections/{category}` (dynamic route exists). No broken links.
+
+**Status:** ✓ All links valid.
+
+---
+
+**Q101. Does the carousel support swipe gestures?**
+
+No carousel exists on the PDP. Two static images.
+
+**Status:** N/A.
+
+---
+
+**Q102. Do accordions maintain height consistency during animation?**
+
+Native `<details>` doesn't animate height — content snaps open. No layout shift occurs since content pushes below elements down naturally.
+
+**Status:** ✓ No shift, but no animation either.
+
+---
+
+**Q103. Are placeholder components removed after fetch?**
+
+Yes. Next.js replaces `loading.tsx` with the actual page content once `getProductBySlug()` resolves.
+
+**Status:** ✓ Automatic.
+
+---
+
+**Q104. Does layout break on extreme screen widths (<320px or >4k)?**
+
+- **<320px:** `px-6` (24px) leaves 272px at 320px width. Content still readable. `text-4xl` title wraps aggressively but doesn't break.
+- **>4k:** `max-w-7xl` (1280px) container constrains content. Images scale up to `800px` width (set in `ProductImage`), but `object-cover` handles overflow gracefully.
+
+**Status:** ✓ Graceful at extremes.
+
+---
+
+**Q105. Are scrollbars visible or hidden by default?**
+
+Native browser scrollbars visible. `.no-scrollbar` class exists in CSS but is only applied to the mobile carousel (which no longer exists on the PDP).
+
+**Status:** ✓ Visible scrollbars. `.no-scrollbar` class available if needed.
+
+---
+
+**Q106. Is responsive font scaling implemented correctly?**
+
+Yes. Title uses `text-4xl md:text-5xl lg:text-6xl`. Price uses `text-3xl`. Body text uses `text-lg`. All scale appropriately.
+
+**Status:** ✓ Correct scaling.
+
+---
+
+**Q107. Are all buttons accessible via tabindex?**
+
+All interactive elements are native `<button>` or `<a>` tags — they have implicit `tabindex="0"`. No `tabindex="-1"` used anywhere.
+
+**Status:** ✓ Accessible.
+
+---
+
+**Q108. Are aria attributes used correctly for accordions, breadcrumbs, and modals?**
+
+- Breadcrumbs: `<nav aria-label="Breadcrumb">`, `<li aria-current="page">` ✓
+- Accordions: Native `<details>` — browser-managed ARIA ✓
+- Mobile menu: `aria-label="Close mobile menu"` ✓
+- Theme toggle: `aria-label="Switch to dark/light mode"` ✓
+- Cart button: `aria-label="View Shopping Bag"` ✓
+
+**Status:** ✓ Correct ARIA usage.
+
+---
+
+**Q109. Is focus outline visible for all interactive elements?**
+
+Yes. `:focus-visible` is styled in `globals.css`:
+```css
+:focus-visible {
+  outline: none;
+  --tw-ring-color: var(--color-accent);
+  box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), ...;
+}
+```
+This shows an accent-colored ring on keyboard focus.
+
+**Status:** ✓ Visible and on-brand.
+
+---
+
+**Q110. Are edge cases like empty description or price handled gracefully?**
+
+- Empty description: `<p>` would render empty — no crash, but blank space ⚠
+- Zero price: `ZAR 0` would render correctly ✓
+- Empty name: `<h1>` would be empty — visually broken but no crash ⚠
+
+**Status:** ⚠ No validation for empty required fields. **Recommendation:** Add zod validation on product data before rendering.
+
+---
+
+## G. Checkout Integration Hooks (Frontend-Ready) — Questions 111–128
+
+**Q111. Where would Add to Bag logic connect to global state?**
+
+Currently in `ProductControls.tsx`, the "Add to Bag" button has no `onClick` handler. Connect to a `CartContext` or Zustand store:
+
+```tsx
+<button onClick={() => addToBag({ product, size: selectedSize, quantity: 1 })} ...>
+```
+
+**Status:** ⚠ Placeholder button ready for wiring.
+
+---
+
+**Q112. Are slugs and product IDs unique to prevent collisions in cart?**
+
+Yes. All 4 products have unique `id` and `slug`. `id` is the canonical cart key.
+
+**Status:** ✓ Unique.
+
+---
+
+**Q113. Can price, variant, image, and title be passed to cart component?**
+
+Yes. `Product` interface has all these fields. `CartItem` in `lib/types.ts` nests `product: Product` with `quantity`, `size`, `variant`.
+
+**Status:** ✓ Type system supports it.
+
+---
+
+**Q114. Are placeholder props ready for ProductControls integration?**
+
+Current props: `{ priceZAR, priceUSD }`. Needed for checkout: `{ priceZAR, priceUSD, sizes, stock, onAddToBag, onSelectSize }`.
+
+**Status:** ⚠ Needs additional props.
+
+---
+
+**Q115. Are event hooks (e.g., onClick, onHover) in place for product selection?**
+
+Size buttons: `onClick={() => setSelectedSize(size)}` ✓
+Currency buttons: `onClick={() => setCurrency(...)}` ✓
+Add to Bag: no `onClick` ⚠
+
+**Status:** ⚠ Add to Bag needs `onClick` handler.
+
+---
+
+**Q116. Are skeleton loaders compatible with cart-ready product data?**
+
+Skeletons use static `bg-surface-container` divs — no data dependency. They'll work regardless of the data shape.
+
+**Status:** ✓ Compatible.
+
+---
+
+**Q117. Can the PDP layout support multiple variants per product?**
+
+Yes. `Product.sizes?: Size[]` is already optional. `ProductControls` renders all `SIZE_OPTIONS` as selectable buttons. Adding color/material variants would need an additional selector row in `ProductControls`.
+
+**Status:** ✓ Size variants supported. Color/material variants need UI additions.
+
+---
+
+**Q118. Is quantity selection planned for ProductControls?**
+
+No quantity selector exists. Currently assumes quantity = 1 on "Add to Bag".
+
+**Status:** ✗ Missing. **Recommendation:** Add a `+/-` quantity stepper to `ProductControls` before checkout.
+
+---
+
+**Q119. Is there a placeholder for stock availability?**
+
+No `stock` field in `Product` interface. No "Out of Stock" or "Low Stock" UI.
+
+**Status:** ✗ Missing. **Recommendation:** Add `stock: number` to `Product` and conditional "Only X left" badge.
+
+---
+
+**Q120. Are breadcrumb links ready to support checkout backtracking?**
+
+Breadcrumbs link to `/` and `/collections/{category}`. For checkout, a breadcrumb like `Home → Cart → Checkout` would follow the same pattern.
+
+**Status:** ✓ Pattern is extensible.
+
+---
+
+**Q121. Are dynamic environment changes compatible with cart?**
+
+Yes. Environment changes are CSS variable overrides scoped to `<body>`. The cart (wherever it's rendered) will inherit whatever `--color-accent` is active on the current page.
+
+**Status:** ✓ Compatible.
+
+---
+
+**Q122. Can the accordion data be serialized for checkout summary?**
+
+Accordion content is static text (The Stitch, Materials & Care, Shipping & Returns). Not product-specific data. For checkout summary, you'd serialize `product.name`, `price`, `selectedSize`, `quantity` — not accordion content.
+
+**Status:** ✓ N/A — accordion data isn't checkout-relevant.
+
+---
+
+**Q123. Are price formatting tokens consistent for cart totals?**
+
+All prices use `.toLocaleString('en-ZA')` for ZAR and `.toFixed(2)` for USD. Consistent across ProductCard, ProductControls, CartDrawer.
+
+**Status:** ✓ Consistent.
+
+---
+
+**Q124. Can we dispatch custom events on "Add to Bag" for analytics?**
+
+Currently no event dispatch. Easy to add:
+
+```tsx
+<button onClick={() => {
+  addToBag(...)
+  window.dispatchEvent(new CustomEvent('cart:add', { detail: { product, size } }))
+}}>
+```
+
+**Status:** ⚠ Ready to implement.
+
+---
+
+**Q125. Are any hidden inputs or metadata placeholders needed for checkout?**
+
+No `<form>` elements with hidden inputs exist. When integrating with PayFast/PayPal, you'll need hidden inputs for `merchant_id`, `item_name`, `amount`, etc.
+
+**Status:** ✗ Missing. Needed for payment gateway integration.
+
+---
+
+**Q126. Are transitions smooth enough to prevent UI jitter when cart is injected?**
+
+CartDrawer uses `transition-transform duration-300` for slide-in/out. Body has `transition-colors duration-300`. No conflicting transitions.
+
+**Status:** ✓ Smooth.
+
+---
+
+**Q127. Can we easily extend PDP to include upsell or cross-sell sections?**
+
+Yes. The right column is a flex column with `space-y-10`. Adding a "You May Also Like" section after the accordions is a simple matter of inserting another `<section>`.
+
+**Status:** ✓ Easy to extend.
+
+---
+
+**Q128. Are all cart hooks compatible with SSR or only CSR?**
+
+Cart state will be client-only (React Context or Zustand in `'use client'` components). The PDP is a Server Component — it passes product data as props to `ProductControls` (client). The cart hook would be consumed inside `ProductControls` via `useCart()` context.
+
+**Status:** ✓ Cart hooks will be CSR-only, which is correct. Server components pass data via props.
+
+---
+
+## Health Score: 8.2 / 10
+
+### Breakdown
+
+| Dimension | Score | Notes |
+|---|---|---|
+| **API & Data Layer** | 8/10 | Clean mock API. Missing stock/availability field. |
+| **Routing & Server Components** | 9/10 | All async server components, loading states, 404 handling. Missing error boundary. |
+| **Layout & Cinematic UI** | 9/10 | Split-screen, sticky visuals, smooth transitions. Accordion content lacks animation. |
+| **Components & Reusability** | 7/10 | Modular but breadcrumbs/accordions/skeletons not extracted. Native `<img>` instead of `next/image`. |
+| **Environment / Theme** | 8/10 | Environment detection works well. Not extensible for new environments yet. Duplicate `--color-secondary` definition. |
+| **UX & Accessibility** | 8/10 | Strong keyboard/screen-reader support. Currency toggle touch targets slightly small. |
+| **Checkout Readiness** | 7/10 | Product data types ready. Missing quantity selector, stock indicator, cart context, analytics events. |
+
+---
+
+## Immediate Refactors Before Checkout Integration
+
+### Must Fix (Blocks Cart Integration)
+
+| # | Refactor | File(s) | Effort |
+|---|---|---|---|
+| **M1** | Add `stock` field to `Product` interface | `lib/types.ts`, `lib/api/products.ts` | 10 min |
+| **M2** | Add `onAddToBag`, `onSelectSize` callback props to `ProductControls` | `components/product/ProductControls.tsx` | 15 min |
+| **M3** | Add quantity selector to `ProductControls` | `components/product/ProductControls.tsx` | 20 min |
+| **M4** | Create `CartContext` provider stub (even with mock state) | `src/contexts/CartContext.tsx` | 30 min |
+
+### Should Fix (Prevents Future Bugs)
+
+| # | Refactor | File(s) | Effort |
+|---|---|---|---|
+| **S1** | Remove duplicate `--color-secondary` definition (line 16 of globals.css) | `styles/globals.css` | 2 min |
+| **S2** | Add `app/error.tsx` for error boundary | `app/error.tsx` | 15 min |
+| **S3** | Extract `<Breadcrumb>` component | `components/navigation/Breadcrumb.tsx` | 20 min |
+| **S4** | Extract `<Accordion>` component | `components/ui/Accordion.tsx` | 20 min |
+| **S5** | Replace `<img>` with `next/image` for real images | All pages | 30 min |
+
+### Nice to Have (Polish)
+
+| # | Refactor | File(s) | Effort |
+|---|---|---|---|
+| **N1** | Add Framer Motion page transitions | `package.json`, `app/` | 1 hr |
+| **N2** | Sync selected size/currency to URL search params | `products/[slug]/page.tsx` | 15 min |
+| **N3** | Make environment detection config-driven | `components/layout/EnvironmentProvider.tsx` | 20 min |
+| **N4** | Animate accordion content height | `components/ui/Accordion.tsx` (with Framer Motion) | 30 min |
+| **N5** | Add currency toggle hover state | `components/product/ProductControls.tsx` | 5 min |
+
+---
+
+## Checkout Integration Readiness: **72%**
+
+**What's ready:**
+- ✓ Product data types (`Product`, `CartItem`, `Size`, `Currency`)
+- ✓ Price formatting (consistent `en-ZA` locale)
+- ✓ Size selector UI (visual, accessible)
+- ✓ Currency toggle (ZAR/USD)
+- ✓ Add to Bag button (visually present)
+- ✓ Cart drawer layout (item rows, totals, checkout CTA)
+- ✓ Environment-aware theming (carries into cart)
+- ✓ Mobile-responsive layout throughout
+
+**What's missing:**
+- ✗ Cart state management (Context/Zustand)
+- ✗ Quantity selector on PDP
+- ✗ Stock availability display
+- ✗ "Add to Bag" event handler + analytics dispatch
+- ✗ Cart badge count in Navbar (currently hardcoded "2")
+- ✗ Payment gateway hidden inputs (PayFast/PayPal)
+- ✗ Error boundary for failed operations
+
+**Estimated effort to checkout-ready:** 3-4 hours of focused frontend work (M1-M4 + S1-S2 + cart badge + analytics event).
+
+---
+
+**Audited by:** Senior Frontend Architect & Luxury E-Commerce Designer
+**Date:** 2026-04-05
+**Next milestone:** Cart Context integration + quantity selector

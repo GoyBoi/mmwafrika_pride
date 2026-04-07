@@ -89,7 +89,6 @@
   --color-surface: #161616;
   --color-card: #1E1E1E;
   --color-primary: #F5F5F5;
-  --color-secondary: #B0B0B0;
   --color-border: #2A2A2A;
   --color-accent: #D4AF37;
   --color-accent-fg: #0E0E0E;
@@ -122,7 +121,7 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; } }
-  body { background-color: var(--color-bg); color: var(--color-primary); font-family: var(--font-body); min-height: 100vh; transition: background-color 0.3s, color 0.3s; }
+  body { background-color: var(--color-bg); color: var(--color-primary); font-family: var(--font-body); min-height: 100vh; }
   body.env-pets { --color-accent: #829273; --color-accent-fg: #F7F5F2; }
   body, header, footer, .btn-primary { transition: background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease; }
   h1, h2, h3, h4, h5, h6 { font-family: var(--font-headline); font-weight: 600; letter-spacing: -0.02em; color: var(--color-primary); }
@@ -134,17 +133,12 @@
   .border-stitch { border: 1px dashed var(--color-border); }
   .border-stitch-strong { border: 2px dashed var(--color-border); }
   .crochet-shadow { box-shadow: var(--shadow-crochet); }
-  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-  .no-scrollbar::-webkit-scrollbar { display: none; }
   .glass { background-color: color-mix(in srgb, var(--color-surface) 80%, transparent); backdrop-filter: blur(12px); }
   .btn-primary { background-color: var(--color-accent); color: var(--color-accent-fg); padding: 0.75rem 2.5rem; min-height: 48px; border-radius: 0.375rem; font-family: var(--font-label); font-weight: 700; font-size: 0.875rem; letter-spacing: 0.05em; text-transform: uppercase; box-shadow: var(--shadow-crochet); transition: all 0.3s; display: flex; align-items: center; justify-content: center; }
   .btn-primary:hover { opacity: 0.9; }
   .btn-primary:active { transform: scale(0.98); }
   .btn-secondary { border: 1px dashed var(--color-border); background-color: transparent; color: var(--color-primary); padding: 0.75rem 2.5rem; min-height: 48px; border-radius: 0.375rem; font-family: var(--font-label); font-weight: 700; font-size: 0.875rem; letter-spacing: 0.05em; text-transform: uppercase; transition: all 0.3s; display: flex; align-items: center; justify-content: center; }
   .btn-secondary:hover { background-color: var(--color-surface-container-low); }
-  .btn-accent { background-color: var(--color-secondary); color: var(--color-on-secondary); padding: 1rem 2rem; border-radius: 0.375rem; font-family: var(--font-label); font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; font-size: 0.875rem; transition: all 0.3s; }
-  .btn-accent:hover { opacity: 0.9; }
-  .btn-accent:active { transform: scale(0.98); }
   .label-md { font-family: var(--font-label); font-size: 10px; text-transform: uppercase; letter-spacing: 0.3em; font-weight: 700; }
   .label-sm { font-family: var(--font-label); font-size: 10px; text-transform: uppercase; letter-spacing: 0.15em; }
   .product-card { position: relative; display: flex; flex-direction: column; }
@@ -156,26 +150,29 @@
   .badge-handmade { background-color: color-mix(in srgb, var(--color-surface-container-lowest) 80%, transparent); backdrop-filter: blur(12px); color: var(--color-primary); border: 1px dashed var(--color-border); padding: 0.25rem 0.75rem; font-family: var(--font-label); font-size: 10px; text-transform: uppercase; letter-spacing: -0.05em; border-radius: 0.125rem; }
   .badge-limited { background-color: var(--color-accent); color: var(--color-accent-fg); padding: 0.25rem 0.75rem; font-family: var(--font-label); font-size: 10px; text-transform: uppercase; letter-spacing: -0.05em; border-radius: 0.125rem; }
   .badge-pet-safe { background-color: var(--color-secondary-container); color: var(--color-on-secondary-container); padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; }
-  .accordion-trigger { display: flex; justify-content: space-between; align-items: center; cursor: pointer; list-style: none; padding: 1.5rem 0; border-bottom: 1px solid var(--color-border); }
-  .accordion-icon { transition: transform 0.3s; }
-  .masonry-item { break-inside: avoid; margin-bottom: 1.5rem; position: relative; overflow: hidden; border-radius: 0.5rem; }
-  .cart-drawer { position: fixed; top: 0; bottom: 0; right: 0; z-index: 60; width: 100%; max-width: 450px; background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-drawer); display: flex; flex-direction: column; }
-  .cart-backdrop { position: fixed; inset: 0; background-color: rgba(0, 0, 0, 0.4); backdrop-filter: blur(4px); z-index: 55; }
-  .sticky-bottom-bar { position: fixed; bottom: 0; left: 0; width: 100%; z-index: 50; padding: 1rem; background-color: color-mix(in srgb, var(--color-card) 90%, transparent); backdrop-filter: blur(12px); border-top: 1px solid var(--color-surface-container-high); }
-  .whatsapp-fab { position: fixed; bottom: 2rem; right: 2rem; z-index: 60; background-color: var(--color-whatsapp); color: white; padding: 1rem; border-radius: 9999px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); transition: transform 0.3s; display: flex; align-items: center; justify-content: center; }
+
+  /* ── Z-index layer map ──────────────────────────────────────────────
+     z-0    → base content
+     z-10   → floating labels, badges, image overlays
+     z-20   → FABs (WhatsApp button)
+     z-50   → navbar (always above base content)
+     z-55   → overlay backdrops
+     z-60   → overlay panels (cart drawer, mobile menu)
+     ─────────────────────────────────────────────────────────────────── */
+  .cart-drawer { position: fixed; top: 0; bottom: 0; right: 0; width: 100%; max-width: 450px; background-color: var(--color-surface-container-lowest); box-shadow: var(--shadow-drawer); display: flex; flex-direction: column; }
+  .whatsapp-fab { position: fixed; bottom: 2rem; right: 2rem; z-index: 20; background-color: var(--color-whatsapp); color: white; padding: 1rem; border-radius: 9999px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); transition: transform 0.3s; display: flex; align-items: center; justify-content: center; }
   .whatsapp-fab:hover { transform: scale(1.1); }
-  .quick-shop-fab { position: fixed; bottom: 2rem; right: 2rem; z-index: 40; background-color: var(--color-secondary); color: var(--color-on-secondary); padding: 1rem; border-radius: 9999px; box-shadow: var(--shadow-crochet); transition: transform 0.3s; display: flex; align-items: center; justify-content: center; }
-  .quick-shop-fab:active { transform: scale(0.95); }
+}
+
+/* Global z-index utility overrides — applied via @layer base to ensure
+   they win over component-level Tailwind z-index classes */
+@layer base {
+  .z-navbar   { z-index: 50; }
+  .z-overlay-backdrop { z-index: 55; }
+  .z-overlay  { z-index: 60; }
 }
 
 @layer utilities {
-  .text-balance { text-wrap: balance; }
-  .img-cover { width: 100%; height: 100%; object-fit: cover; object-position: center; }
-  .hover-lift { transition: transform 0.3s; }
-  .hover-lift:hover { transform: translateY(-4px); }
-  .hover-scale { transition: transform 0.5s; }
-  .hover-scale:hover { transform: scale(1.05); }
-  .backdrop-blur-xs { backdrop-filter: blur(2px); }
 }
 
 .container { max-width: 80rem; margin-left: auto; margin-right: auto; padding-left: 1rem; padding-right: 1rem; }

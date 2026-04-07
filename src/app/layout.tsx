@@ -7,6 +7,7 @@ import Footer from '@/components/layout/Footer'
 import WhatsAppFAB from '@/components/ui/WhatsAppFAB'
 import EnvironmentProvider from '@/components/layout/EnvironmentProvider'
 import CartDrawer from '@/components/cart/CartDrawer'
+import OverlayDebugPanel from '@/components/debug/OverlayDebugPanel'
 
 const bhineka = localFont({
   src: [{ path: '../fonts/Bhineka.woff2', weight: '400', style: 'normal' }],
@@ -69,7 +70,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${notoSerif.variable} ${inter.variable} ${bhineka.variable} ${vintage.variable}`} data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('mmwafrika-theme');if(t==='dark'||(t!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark')}}catch(e){}})();` }} />
+        {/* Synchronous theme detection — must block paint to prevent FOUC */}
+        <script src="/theme-init.js" />
       </head>
       <body className="min-h-screen flex flex-col font-sans antialiased bg-bg text-primary transition-colors duration-300">
         <EnvironmentProvider />
@@ -78,6 +80,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Footer />
         <WhatsAppFAB />
         <CartDrawer />
+        <OverlayDebugPanel />
       </body>
     </html>
   )

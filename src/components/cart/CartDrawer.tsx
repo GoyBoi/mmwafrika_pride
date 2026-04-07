@@ -1,48 +1,74 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { useCartStore } from '@/store/cartStore'
+import { useOverlayStore } from '@/store/overlayStore'
 import { SHIPPING_REGIONS, SHIPPING_COSTS } from '@/lib/constants'
 import { formatPrice, formatPriceUSD } from '@/lib/utils/formatPrice'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useOverlayBehavior } from '@/hooks/useOverlayBehavior'
 
 export default function CartDrawer() {
   const items = useCartStore((state) => state.items)
+  const isHydrated = useCartStore((state) => state.isHydrated)
   const removeItem = useCartStore((state) => state.removeItem)
   const updateQuantity = useCartStore((state) => state.updateQuantity)
-  const isCartOpen = useCartStore((state) => state.isCartOpen)
-  const setIsCartOpen = useCartStore((state) => state.setIsCartOpen)
   const currency = useCartStore((state) => state.currency)
+  const activeOverlay = useOverlayStore((s) => s.activeOverlay)
+  const closeOverlay = useOverlayStore((s) => s.closeOverlay)
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
   const [shippingRegion, setShippingRegion] = useState('za')
+  const panelRef = useRef<HTMLElement>(null)
+
+  const isOpen = activeOverlay === 'cartDrawer'
 
   const subtotal = items.reduce((sum, item) => sum + (currency === 'ZAR' ? item.priceZAR : item.priceUSD) * item.quantity, 0)
   const shipping = items.length > 0 ? SHIPPING_COSTS[shippingRegion as keyof typeof SHIPPING_COSTS] ?? 0 : 0
   const total = subtotal + shipping
 
   useEffect(() => { setMounted(true) }, [])
-  useEffect(() => { document.body.style.overflow = isCartOpen ? 'hidden' : 'auto'; return () => { document.body.style.overflow = 'auto' } }, [isCartOpen])
-  useEffect(() => { const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setIsCartOpen(false) }; window.addEventListener('keydown', handleEsc); return () => window.removeEventListener('keydown', handleEsc) }, [setIsCartOpen])
 
-  if (!mounted || !isCartOpen) return null
+  useOverlayBehavior(isOpen, closeOverlay, panelRef)
 
-  return (
+  function handleClose() {
+    closeOverlay()
+  }
+
+  function handleCheckout() {
+    closeOverlay()
+    router.push('/checkout')
+  }
+
+  if (!mounted || !isHydrated) return null
+
+  return createPortal(
     <>
-      <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[55]" onClick={() => setIsCartOpen(false)} aria-hidden="true" />
-      <aside className="cart-drawer fixed right-0 top-0 h-full w-full max-w-[450px] bg-surface-container-lowest shadow-drawer z-[60] flex flex-col transition-transform duration-300 translate-x-0" role="dialog" aria-modal="true" aria-label="Shopping cart">
+      <div
+        className={`fixed inset-0 bg-black/30 backdrop-blur-sm z-overlay-backdrop transition-opacity duration-300 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        onClick={handleClose}
+        aria-hidden="true"
+      />
+      <aside
+        ref={panelRef}
+        className={`cart-drawer fixed inset-y-0 right-0 z-overlay w-full max-w-[450px] bg-surface-container-lowest shadow-drawer flex flex-col transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Shopping cart"
+      >
         <div className="px-8 pt-12 pb-6 flex justify-between items-end flex-shrink-0">
           <div>
             <span className="text-label text-on-surface-variant mb-1 block">Your Selection</span>
             <h2 className="font-vintage text-h2 font-light">The Cart</h2>
           </div>
-          <button onClick={() => setIsCartOpen(false)} className="p-2 -mr-2 hover:opacity-50 transition-opacity" aria-label="Close cart">
+          <button onClick={handleClose} className="p-2 -mr-2 hover:opacity-50 transition-opacity" aria-label="Close cart">
             <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto px-8 py-4 space-y-10">
+        <div className="flex-1 overflow-y-auto overscroll-contain px-8 py-4 space-y-10">
           <div className="space-y-8">
             {items.map((item) => (
               <div key={`${item.productId}-${item.size}`} className="flex gap-6 group">
@@ -75,7 +101,7 @@ export default function CartDrawer() {
                 <svg className="w-16 h-16 mx-auto text-on-surface-variant/30 mb-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 01-8 0" /></svg>
                 <p className="text-h3 font-medium text-primary">Your bag is waiting</p>
                 <p className="text-body-md text-on-surface-variant mt-2">Discover pieces crafted with intention.</p>
-                <Link href="/collections" onClick={() => setIsCartOpen(false)} className="inline-block mt-6 text-accent hover:text-primary transition-colors text-body-md font-medium">Browse the Collection →</Link>
+                <Link href="/collections" onClick={handleClose} className="inline-block mt-6 text-accent hover:text-primary transition-colors text-body-md font-medium">Browse the Collection →</Link>
               </div>
             )}
           </div>
@@ -99,13 +125,14 @@ export default function CartDrawer() {
               <div className="flex justify-between text-body-sm"><span className="text-on-surface-variant">Shipping</span><span className="font-semibold text-secondary">{formatPrice(shipping)}</span></div>
               <div className="flex justify-between items-baseline pt-4 border-t border-outline-variant/30"><span className="font-vintage text-h3">Total</span><span className="text-price font-bold">{formatPrice(total)}</span></div>
             </div>
-            <button onClick={() => { setIsCartOpen(false); router.push('/checkout') }} className="w-full h-14 bg-secondary hover:opacity-90 active:scale-[0.98] transition-all duration-300 rounded-md flex items-center justify-center gap-3 text-label uppercase text-sm"><span>Secure Checkout</span><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg></button>
+            <button onClick={handleCheckout} className="w-full h-14 bg-secondary hover:opacity-90 active:scale-[0.98] transition-all duration-300 rounded-md flex items-center justify-center gap-3 text-label uppercase text-sm"><span>Secure Checkout</span><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg></button>
             <div className="mt-6 flex flex-col items-center gap-2">
               <div className="flex items-center gap-2"><svg className="w-4 h-4 text-secondary" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg><p className="text-label text-on-surface-variant">Secure Checkout via PayFast (SA) &amp; PayPal (Intl).</p></div>
             </div>
           </div>
         )}
       </aside>
-    </>
+    </>,
+    document.body
   )
 }

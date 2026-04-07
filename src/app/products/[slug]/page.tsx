@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { getProductBySlug } from '@/lib/api/products'
 import BackButton from '@/components/ui/BackButton'
 import ProductControls from '@/components/product/ProductControls'
+import { formatPrice, formatPriceUSD } from '@/lib/utils/formatPrice'
 
 interface ProductPageProps {
   params: Promise<{ slug: string }>
@@ -52,8 +53,8 @@ export default async function ProductPage(props: ProductPageProps) {
               <p className="font-bhineka text-h2 md:text-h1 text-secondary/60 mt-2 italic">Crafted with intention</p>
             </div>
             <div className="flex items-baseline gap-6">
-              <span className="text-price text-accent">ZAR {product.price.ZAR.toLocaleString('en-ZA')}</span>
-              <span className="text-body-md text-secondary">${product.price.USD.toFixed(2)}</span>
+              <span className="text-price text-accent">{formatPrice(product.price.ZAR)}</span>
+              <span className="text-body-md text-secondary">{formatPriceUSD(product.price.USD)}</span>
             </div>
             <p className="text-body-md text-on-surface-variant max-w-lg">{product.description}</p>
             <div className="border-stitch" />

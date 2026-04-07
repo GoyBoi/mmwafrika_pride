@@ -1,9 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { SIZE_OPTIONS } from '@/lib/constants'
 import type { Size } from '@/lib/types'
 import { useCartStore } from '@/store/cartStore'
+import { useOverlayStore } from '@/store/overlayStore'
+import { formatPrice, formatPriceUSD } from '@/lib/utils/formatPrice'
 
 interface ProductControlsProps {
   product: { id: string; slug: string; name: string; price: { ZAR: number; USD: number }; images: { src: string; alt: string }[]; sizes?: Size[] }
@@ -13,23 +15,34 @@ export default function ProductControls({ product }: ProductControlsProps) {
   const availableSizes = product.sizes ?? SIZE_OPTIONS
   const [selectedSize, setSelectedSize] = useState<Size>(availableSizes[0])
   const addItem = useCartStore((state) => state.addItem)
-  const setIsCartOpen = useCartStore((state) => state.setIsCartOpen)
+  const openOverlay = useOverlayStore((s) => s.openOverlay)
   const currency = useCartStore((state) => state.currency)
   const setCurrency = useCartStore((state) => state.setCurrency)
   const [added, setAdded] = useState(false)
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    }
+  }, [])
 
   const handleAddToBag = () => {
-    addItem({ productId: product.id, slug: product.slug, name: product.name, priceZAR: product.price.ZAR, priceUSD: product.price.USD, currency: 'ZAR', size: selectedSize, quantity: 1, image: product.images[0]?.src || '/images/placeholders/product/default.svg' })
+    if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    addItem({ productId: product.id, slug: product.slug, name: product.name, priceZAR: product.price.ZAR, priceUSD: product.price.USD, currency: useCartStore.getState().currency, size: selectedSize, quantity: 1, image: product.images[0]?.src || '/images/placeholders/product/default.svg' })
     setAdded(true)
-    setTimeout(() => setAdded(false), 1200)
-    setIsCartOpen(true)
+    timeoutRef.current = setTimeout(() => {
+      setAdded(false)
+      openOverlay('cartDrawer')
+      timeoutRef.current = null
+    }, 300)
   }
 
   return (
     <div className="flex flex-col gap-8">
       <div className="space-y-4">
         <div className="flex items-center gap-6">
-          <span className="text-price font-light transition-colors duration-300">{currency === 'ZAR' ? `ZAR ${product.price.ZAR.toLocaleString('en-ZA')}` : `$${product.price.USD.toFixed(2)}`}</span>
+          <span className="text-price font-light transition-colors duration-300">{currency === 'ZAR' ? formatPrice(product.price.ZAR) : formatPriceUSD(product.price.USD)}</span>
           <div className="flex items-center bg-surface-container p-1 rounded-full stitch-border transition-colors duration-300">
             <button onClick={() => setCurrency('ZAR')} className={`px-3 py-1 text-label rounded-full transition-all ${currency === 'ZAR' ? 'bg-card shadow-sm' : 'text-secondary'}`} aria-label="Show prices in ZAR">ZAR</button>
             <button onClick={() => setCurrency('USD')} className={`px-3 py-1 text-label rounded-full transition-all ${currency === 'USD' ? 'bg-card shadow-sm' : 'text-secondary'}`} aria-label="Show prices in USD">USD</button>

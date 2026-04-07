@@ -1,11 +1,7 @@
-import { EXCHANGE_RATE_ZAR_TO_USD, CURRENCIES } from './constants'
+import { EXCHANGE_RATE_ZAR_TO_USD } from './constants'
 import type { Currency } from './types'
 
-export function formatPrice(amount: number, currency: Currency = 'ZAR'): string {
-  const { symbol } = CURRENCIES[currency]
-  if (currency === 'ZAR') return `${symbol} ${amount.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-  return `${symbol}${amount.toFixed(2)}`
-}
+export { formatPrice, formatPriceUSD } from '@/lib/utils/formatPrice'
 
 export function convertZarToUsd(zarAmount: number): number { return Number((zarAmount * EXCHANGE_RATE_ZAR_TO_USD).toFixed(2)) }
 export function convertUsdToZar(usdAmount: number): number { return Number((usdAmount / EXCHANGE_RATE_ZAR_TO_USD).toFixed(2)) }

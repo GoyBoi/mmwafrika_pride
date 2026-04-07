@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import type { ProductCardProps } from '@/lib/types'
+import { formatPrice, formatPriceUSD } from '@/lib/utils/formatPrice'
 
 export default function ProductCard({ product, priority = false }: ProductCardProps) {
   const { slug, name, price, images, badge, isPetSafe, lifestyleImage } = product
@@ -16,7 +17,7 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
         {badgeLabel && (<span className={`absolute top-4 left-4 z-10 ${badge === 'new' ? 'badge-new' : badge === 'handmade' ? 'badge-handmade' : 'badge-limited'} px-3 py-1 font-label text-[10px] uppercase tracking-tighter rounded-sm`}>{badgeLabel}</span>)}
         {isPetSafe && (<span className="absolute top-4 right-4 z-10 bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full text-xs font-medium">Pet-Safe Material</span>)}
         <div className="quick-view z-10">
-          <Link href={`/products/${slug}`} className="w-full bg-card/90 backdrop-blur-md text-primary py-3 text-label uppercase hover:bg-accent hover:text-accent-fg transition-colors duration-300 block text-center">Quick View</Link>
+          <Link href={`/products/${slug}`} className="w-full bg-card/90 backdrop-blur-md text-primary py-3 text-label uppercase hover:bg-accent hover:text-accent-fg focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-accent transition-colors duration-300 block text-center">Quick View</Link>
         </div>
       </div>
       <div className="space-y-2">
@@ -25,8 +26,8 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
           {isPetSafe && (<svg className="w-5 h-5 text-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="4" r="2" /><circle cx="18" cy="8" r="2" /><circle cx="4" cy="8" r="2" /><path d="M12 14c-4 0-7 2-7 5v1h14v-1c0-3-3-5-7-5z" /></svg>)}
         </div>
         <div className="flex gap-3 items-baseline">
-          <p className="text-price font-semibold text-primary">ZAR {price.ZAR.toLocaleString('en-ZA')}</p>
-          <p className="text-body-sm text-secondary">${price.USD.toFixed(2)}</p>
+          <p className="text-price font-semibold text-primary">{formatPrice(price.ZAR)}</p>
+          <p className="text-body-sm text-secondary">{formatPriceUSD(price.USD)}</p>
         </div>
       </div>
     </div>
