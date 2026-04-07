@@ -9,7 +9,18 @@ export default function HeroSection() {
         <div className="flex flex-col items-center text-center space-y-10 z-10">
           <div className="space-y-8">
             <div className="flex items-end justify-center gap-5 flex-wrap">
-              <span className="font-bhineka font-semibold text-display-xl text-primary leading-[1]">MmwAfrika</span>
+              <div className="relative inline-flex flex-col items-center group">
+                <span className="font-bhineka font-semibold text-display-xl leading-[0.9] tracking-tight" aria-label="MmwAfrika">
+                  <span className="text-accent">Mmw</span><span className="text-primary transition-colors duration-300">Afrika</span>
+                </span>
+                {/* Decorative Stripes Container */}
+                <div className="w-full mt-2 flex flex-col gap-[2px]" aria-hidden="true">
+                  <div className="h-[3px] w-full bg-[#D4AF37]" /> {/* Gold */}
+                  <div className="h-[3px] w-full bg-[#BE3A34]" /> {/* Red */}
+                  <div className="h-[3px] w-full bg-[#367C3F]" /> {/* Green */}
+                  <div className="h-[1px] w-full border-b border-dashed border-[#BE3A34] mt-[1px]" /> {/* Decorative dash */}
+                </div>
+              </div>
               <span className="font-vintage italic text-h1 text-primary">Pride Couture</span>
             </div>
             <h1 className="font-sans text-h3 leading-[1.25] text-primary">Unique <span className="font-semibold">Crochet Couture</span>,<br />Plushies &amp; Blankets</h1>

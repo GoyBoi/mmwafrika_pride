@@ -7,7 +7,6 @@ import Footer from '@/components/layout/Footer'
 import WhatsAppFAB from '@/components/ui/WhatsAppFAB'
 import EnvironmentProvider from '@/components/layout/EnvironmentProvider'
 import CartDrawer from '@/components/cart/CartDrawer'
-import OverlayDebugPanel from '@/components/debug/OverlayDebugPanel'
 
 const bhineka = localFont({
   src: [{ path: '../fonts/Bhineka.woff2', weight: '400', style: 'normal' }],
@@ -80,7 +79,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Footer />
         <WhatsAppFAB />
         <CartDrawer />
-        <OverlayDebugPanel />
       </body>
     </html>
   )

@@ -2,26 +2,37 @@
 
 import { useCartStore } from '@/store/cartStore'
 
-const CURRENCIES: { code: 'ZAR' | 'USD' | 'EUR'; label: string }[] = [
-  { code: 'ZAR', label: 'ZAR' },
-  { code: 'USD', label: 'USD' },
-  { code: 'EUR', label: 'EUR' },
-]
+const CURRENCIES = [
+  { code: 'ZAR', label: 'ZAR', symbol: 'R' },
+  { code: 'USD', label: 'USD', symbol: '$' },
+  { code: 'EUR', label: 'EUR', symbol: '€' },
+] as const
 
 export default function CurrencyToggle() {
   const currency = useCartStore((s) => s.currency)
   const setCurrency = useCartStore((s) => s.setCurrency)
 
-  const cycleIndex = CURRENCIES.findIndex((c) => c.code === currency)
-  const nextCurrency = CURRENCIES[(cycleIndex + 1) % CURRENCIES.length]
-
-  const toggleCurrency = () => { setCurrency(nextCurrency.code) }
-
   return (
-    <button aria-label={`Switch currency to ${nextCurrency.label}`} onClick={toggleCurrency} className="flex items-center bg-surface-container p-1 rounded-full border-stitch transition-colors duration-300">
+    <div className="flex items-center bg-surface/50 p-1.5 rounded-full border border-border/10 backdrop-blur-md transition-colors duration-300">
       {CURRENCIES.map((c) => (
-        <span key={c.code} className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-full transition-all ${currency === c.code ? 'bg-card shadow-sm text-primary' : 'text-secondary'}`}>{c.label}</span>
+        <button
+          key={c.code}
+          onClick={() => setCurrency(c.code)}
+          className={`relative flex items-center gap-1.5 px-4 py-1.5 rounded-full transition-all duration-500 ease-in-out ${
+            currency === c.code
+              ? 'bg-card text-accent shadow-md scale-105'
+              : 'text-secondary/60 hover:text-primary'
+          }`}
+          aria-label={`Show prices in ${c.label}`}
+        >
+          <span className={`text-[12px] font-serif ${currency === c.code ? 'text-accent' : 'text-secondary/40'}`}>
+            {c.symbol}
+          </span>
+          <span className="text-[10px] font-bold uppercase tracking-widest">
+            {c.label}
+          </span>
+        </button>
       ))}
-    </button>
+    </div>
   )
 }
